@@ -73,6 +73,10 @@ log:
 
 api:
   listen: ":1984"
+  # Mainsail is served from :4408 and talks to this API on :1984, so the
+  # browser WebSocket is cross-origin. Without this the player shows
+  # "Disconnected".
+  origin: "*"
 
 rtsp:
   listen: ""

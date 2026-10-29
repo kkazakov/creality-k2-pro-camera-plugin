@@ -77,6 +77,7 @@ Everything lives in `/mnt/UDISK/go2rtc/go2rtc.yaml`:
 ```yaml
 api:
   listen: ":1984"
+  origin: "*"               # Mainsail's player uses a cross-origin WebSocket
 
 webrtc:
   listen: ":8555"
@@ -123,6 +124,15 @@ entry and restores the original `moonraker.conf` from the backup taken at
 install time.
 
 ## Troubleshooting
+
+**Player says "Disconnected".** The `api.origin` setting is missing, so go2rtc
+rejects the cross-origin WebSocket from Mainsail's player. It must be present:
+
+```yaml
+api:
+  listen: ":1984"
+  origin: "*"
+```
 
 **Panel is black.** Reload Mainsail once. The browser has to complete the WebRTC
 handshake, and the first frame can take a second or two. Check the relay first
