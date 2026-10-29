@@ -180,6 +180,20 @@ api:
   origin: "*"
 ```
 
+**One panel cycles "Disconnected" while another shows video.** You have both a
+LAN entry and a remote entry enabled. Mainsail renders every enabled webcam, and
+the LAN entry's `stream_url` cannot work from an HTTPS origin — it will retry
+`wss://<lan-ip>:1984` forever. Disable the one that does not apply:
+
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+     -d '{"uid":"<uid>","enabled":false}' \
+     http://<printer>:7125/server/webcams/item
+```
+
+`enabled: false` hides it from Mainsail without deleting it, so it can be
+switched back on for LAN-only use.
+
 **Panel is black.** Reload Mainsail once. The browser has to complete the WebRTC
 handshake, and the first frame can take a second or two. Check the relay first
 with the `curl` command above — if that returns a JPEG, the printer side is fine.
