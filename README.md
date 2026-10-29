@@ -123,6 +123,52 @@ Stops and disables the service, removes `/mnt/UDISK/go2rtc`, deletes the webcam
 entry and restores the original `moonraker.conf` from the backup taken at
 install time.
 
+## Remote access (HTTPS / VPN)
+
+If you open Mainsail through a hostname such as `https://k2.example.com`, the
+player derives its WebSocket from `stream_url` and inherits the page's scheme.
+A LAN IP in `stream_url` therefore becomes `wss://192.168.88.86:1984`, which
+fails: the address is not reachable from outside, and go2rtc does not speak TLS.
+
+Serve go2rtc under the same origin as Mainsail. Add this to the printer's
+`/etc/nginx/nginx.conf`, inside the `server` block (the file already defines
+`$connection_upgrade`):
+
+```nginx
+location /go2rtc/ {
+    proxy_pass http://127.0.0.1:1984/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $http_host;
+    proxy_read_timeout 86400;
+}
+```
+
+Then register a webcam entry that uses the public URL:
+
+| Field | Value |
+| --- | --- |
+| service | `webrtc-go2rtc` |
+| stream_url | `https://k2.example.com/go2rtc/stream.html?src=k2pro&mode=webrtc` |
+| snapshot_url | `https://k2.example.com/go2rtc/api/frame.jpeg?src=k2pro` |
+
+Your outer reverse proxy must forward `/go2rtc/` too, with WebSocket upgrade.
+Check it with `curl -sI https://k2.example.com/go2rtc/api/streams` — it should
+not redirect.
+
+### Media path
+
+WebRTC media does not travel through the proxy: the browser connects directly to
+the printer's ICE candidates on port 8555. That works on the LAN and over a VPN
+that routes to the printer. From the open internet you need one of:
+
+- forward `8555` TCP **and** UDP to the printer and advertise a public candidate
+  (`webrtc.candidates`), or
+- use HLS through the proxy, which needs no extra ports and no transcoding:
+  `https://k2.example.com/go2rtc/api/stream.m3u8?src=k2pro` with service
+  `hlsstreamer` (adds a few seconds of latency).
+
 ## Troubleshooting
 
 **Player says "Disconnected".** The `api.origin` setting is missing, so go2rtc
