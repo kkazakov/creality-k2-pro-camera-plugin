@@ -42,6 +42,15 @@ scp_from() { scp "${SSH_OPTS[@]}" "${SSH_USER}@${IP}:$1" "$2"; }
 say "Printer: $IP (user: $SSH_USER)"
 ssh_run "uname -n" || die "cannot reach the printer over SSH"
 
+# The installer restarts Moonraker, so refuse to run while a job is active
+PRINT_STATE="$(curl -fsS -m 10 "http://${IP}:7125/printer/objects/query?print_stats" 2>/dev/null \
+    | grep -o '"state": *"[a-z]*"' | head -1 | cut -d'"' -f4 || true)"
+case "$PRINT_STATE" in
+    printing|paused)
+        die "printer is '$PRINT_STATE' - this installs a service and restarts Moonraker. Re-run when idle."
+        ;;
+esac
+
 # 1. Fetch go2rtc for ARMv7
 BIN="$TMP/go2rtc"
 if [ -n "${GO2RTC_BIN:-}" ]; then
